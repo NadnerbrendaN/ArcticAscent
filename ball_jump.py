@@ -53,6 +53,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.y += 1 # Try moving down
         if pygame.sprite.spritecollideany(self, platforms): # If we're in the ground
             self.grounded = True # We're grounded
+        else: self.grounded = False
         self.rect.y -= 1 # Move back up
 
 class Platform(pygame.sprite.Sprite): # Platforms
