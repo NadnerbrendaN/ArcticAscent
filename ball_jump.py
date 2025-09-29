@@ -1,3 +1,5 @@
+import random
+
 import pygame
 import sys
 
@@ -75,11 +77,29 @@ player_group = pygame.sprite.Group()
 platforms = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 
-player = Player(0, 0)
+player = Player(0, 450)
 player_group.add(player)
 
-platforms.add(Platform(0, SCREEN_HEIGHT - 60, SCREEN_WIDTH, 60)) # Manually add platforms temporarily before making level setup
-platforms.add(Platform(100, 400, 100, 20))
+platforms.add(Platform(0, SCREEN_HEIGHT - 60, 640, 60)) # Manually add platforms temporarily before making level setup
+#platforms.add(Platform(100, 400, 100, 20))
+
+for y in range(SCREEN_HEIGHT // 3): # left side platforms
+    #x = random.randint(0,SCREEN_WIDTH - 100)
+    w = random.randint(50, 120)
+
+    platforms.add(Platform(0, y * 160 + 100, w, 20))
+
+for y in range(SCREEN_HEIGHT // 3): # right side platforms
+    #x = random.randint(0,SCREEN_WIDTH - 100)
+    w = random.randint(50, 120)
+
+    platforms.add(Platform(SCREEN_WIDTH - w, y * 160 + 180, w, 20))
+
+for y in range(SCREEN_HEIGHT // 3):
+    add = random.randint(0, 100) < 50
+
+    if(add):
+        platforms.add(Platform(SCREEN_WIDTH / 2 - w / 2, y * 160 + 60, 40, 20))
 
 all_sprites.add(player_group, platforms)
 
