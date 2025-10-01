@@ -4,7 +4,7 @@ import pygame
 import sys
 
 # Constant Definition
-SCREEN_WIDTH = 400
+SCREEN_WIDTH = 500
 SCREEN_HEIGHT = 600
 FPS = 60
 GRAVITY = 0.5 # The force of gravity
@@ -24,9 +24,16 @@ clock = pygame.time.Clock()
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load('mauve_ball.png').convert_alpha()
+
+        self.image_right = pygame.image.load('penguin_right.png').convert_alpha()
+        self.image_left = pygame.transform.flip(self.image_right, True, False)
+
+        self.image = self.image_right  # Start facing right
         self.rect = self.image.get_rect(topleft=(x, y))
         self.mask = pygame.mask.from_surface(self.image)
+
+        self.max_height = y
+
         self.vx = 0 # Instance fields for velocity
         self.vy = 0
         self.grounded = False # Is the ball on the ground?
@@ -41,6 +48,12 @@ class Player(pygame.sprite.Sprite):
             self.rect.x += x # Move in the x direction
             if self.grounded and x != 0: # If we're on the ground and rolling
                 self.vx -= self.vx * FRICTION # Slow down with friction
+
+            if self.vx > 0: #penguin faces right if vx > 0
+                self.image = self.image_right
+            elif self.vx < 0: #switch penguin to face left
+                self.image = self.image_left
+
             if self.rect.x + self.rect.width > SCREEN_WIDTH: # If the player is offscreen to the right
                 self.rect.x = SCREEN_WIDTH - self.rect.width # Stay just on screen on the right
             elif self.rect.x < 0: # If the player is offscreen to the left
@@ -53,6 +66,9 @@ class Player(pygame.sprite.Sprite):
             self.rect.y -= y / abs(y) # Move out by one pixel
             self.grounded = True # We are on the ground
             self.vy = 0 # Stop falling (set y velocity to 0)
+
+        if self.rect.y > self.max_height:
+            self.max_height = self.rect.y
 
     def nudge(self, x, y): # Add velocity
         self.vx += x # Add to x velocity
@@ -83,23 +99,24 @@ player_group.add(player)
 platforms.add(Platform(0, SCREEN_HEIGHT - 60, 640, 60)) # Manually add platforms temporarily before making level setup
 #platforms.add(Platform(100, 400, 100, 20))
 
-for y in range(SCREEN_HEIGHT // 3): # left side platforms
+for y in range(8): # left side platforms
     #x = random.randint(0,SCREEN_WIDTH - 100)
-    w = random.randint(50, 120)
+    w = random.randint(75, 200)
 
-    platforms.add(Platform(0, y * 160 + 100, w, 20))
+    platforms.add(Platform(0, y * 200 - (8 * 100), w, 20))
 
-for y in range(SCREEN_HEIGHT // 3): # right side platforms
+for y in range(8): # right side platforms
     #x = random.randint(0,SCREEN_WIDTH - 100)
-    w = random.randint(50, 120)
+    w = random.randint(75, 200)
 
-    platforms.add(Platform(SCREEN_WIDTH - w, y * 160 + 180, w, 20))
+    platforms.add(Platform(SCREEN_WIDTH - w, y * 200 - (8 * 100 + 80), w, 20))
 
-for y in range(SCREEN_HEIGHT // 3):
-    add = random.randint(0, 100) < 50
+# for y in range(8): # middle platforms
+#     add = random.randint(0, 100) < 50
+#
+#     if(add):
+#         platforms.add(Platform(SCREEN_WIDTH / 2 - 60 / 2, y * 160 - 740, 60, 20))
 
-    if(add):
-        platforms.add(Platform(SCREEN_WIDTH / 2 - w / 2, y * 160 + 60, 40, 20))
 
 all_sprites.add(player_group, platforms)
 
