@@ -47,6 +47,7 @@ class Player(pygame.sprite.Sprite):
                 self.rect.x = 0 # Stay just on screen on the right
             while pygame.sprite.spritecollideany(self, platforms): # If in an obstacle
                 self.rect.x -= x / abs(x) # Move out by one pixel
+                self.vx = 0 # Ensure that when you hit a wall you don't keep going
 
         self.rect.y += y # Move in the y direction
         while pygame.sprite.spritecollideany(self, platforms): # If in an obstacle
@@ -63,6 +64,10 @@ class Player(pygame.sprite.Sprite):
         self.grounded = pygame.sprite.spritecollideany(self, platforms)
         self.rect.y -= 1 # Move back up
 
+    def draw(self):
+        rect = pygame.Rect(self.rect.x, 350, self.rect.width, self.rect.height)
+        screen.blit(self.image, rect)
+
 class Platform(pygame.sprite.Sprite): # Platforms
     def __init__(self, x, y, w, h):
         super().__init__()
@@ -70,15 +75,13 @@ class Platform(pygame.sprite.Sprite): # Platforms
         self.image.fill(GREEN)
         self.rect = self.image.get_rect(topleft=(x, y))
 
-    def scroll(self, y):
+    def move(self, y):
         self.rect.y += y
 
-player_group = pygame.sprite.Group()
 platforms = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 
 player = Player(0, 450)
-player_group.add(player)
 
 platforms.add(Platform(0, SCREEN_HEIGHT - 60, 640, 60)) # Manually add platforms temporarily before making level setup
 #platforms.add(Platform(100, 400, 100, 20))
@@ -101,7 +104,7 @@ for y in range(SCREEN_HEIGHT // 3):
     if(add):
         platforms.add(Platform(SCREEN_WIDTH / 2 - w / 2, y * 160 + 60, 40, 20))
 
-all_sprites.add(player_group, platforms)
+all_sprites.add(platforms)
 
 target_position = (0, 0) # Set the player's click offscreen temporarily
 
@@ -117,7 +120,7 @@ while running:
             player.grounded = False # No longer on the ground
             target_position = pygame.mouse.get_pos() # Target the click
             player.nudge((target_position[0] - player.rect.centerx) / (SCREEN_WIDTH/10),
-            (target_position[1] - player.rect.centery) / (SCREEN_HEIGHT/20)) # Math to scale how hard we jump and get the right direction
+            (target_position[1] - 350) / (SCREEN_HEIGHT/30)) # Math to scale how hard we jump and get the right direction
 
     if not player.grounded: # If jumping
         player.nudge(0, GRAVITY) # Be affected by gravity
@@ -126,16 +129,14 @@ while running:
 
     player.move(None, None) # Apply player velocity
 
-    for platform in platforms.sprites(): # Loop through all platforms
-        if platform.rect.y - player.rect.height > SCREEN_HEIGHT: # If it's below the screen
-            platforms.remove(platform) # Kill it
-        if frames > 180 and frames % 2: # 30x a second after the first three seconds
-            platform.scroll(1) # Move each platform down by one pixel (simulating the screen moving up)
-    player.move(0, 1) # Move the player down with them (it's also staying still while the screen moves up)
-
     # Screen drawing
     screen.fill(BLUE) # Background
+    player.draw()
+    for platform in platforms.sprites():
+        platform.move(350 + -player.rect.y)
     all_sprites.draw(screen) # Draw everything
+    for platform in platforms.sprites():
+        platform.move(-350 + player.rect.y)
     pygame.draw.circle(screen, RED, target_position, 3) # Draw a circle where you clicked
 
     pygame.display.flip()
