@@ -20,7 +20,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Ball Jump")
 clock = pygame.time.Clock()
 
-# background = pygame.image.load('background.png').convert_alpha()
+max_platform_y = -880
 
 # Class Definitions
 class Player(pygame.sprite.Sprite):
@@ -70,12 +70,14 @@ class Player(pygame.sprite.Sprite):
             self.grounded = True # We are on the ground
             self.vy = 0 # Stop falling (set y velocity to 0)
 
-        if self.rect.y > self.max_height:
+        if self.rect.y < self.max_height:
             self.max_height = self.rect.y
 
     def nudge(self, x, y): # Add velocity
         self.vx += x # Add to x velocity
         self.vy += y # Add to y velocity
+        if self.vy < -20:
+            self.vy = -20
 
     def ground_check(self): # See if we're grounded
         self.rect.y += 1 # Try moving down
@@ -106,7 +108,7 @@ for x in range(3): #starting platform
     for y in range(15):
         platforms.add(Platform(200 * x, SCREEN_HEIGHT + y * 20, 640, 300))
 
-for y in range(8): # left side platforms
+for y in range(7): # left side platforms
     #x = random.randint(0,SCREEN_WIDTH - 100)
     w = random.randint(100, 180)
 
@@ -136,6 +138,19 @@ while running:
             player.nudge((target_position[0] - player.rect.centerx) / (SCREEN_WIDTH/10),
             (target_position[1] - 350) / (SCREEN_HEIGHT/30)) # Math to scale how hard we jump and get the right direction
 
+    if player.max_height - 400 < max_platform_y:
+        w = random.randint(75, 200)
+        plat = Platform(0, max_platform_y - 80, w, 20)
+        platforms.add(plat)
+        all_sprites.add(plat)
+
+        w = random.randint(75, 200)
+        plat = Platform(SCREEN_WIDTH - w, max_platform_y - 200, w, 20)
+        platforms.add(plat)
+        all_sprites.add(plat)
+
+        max_platform_y -= 200
+
     if not player.grounded: # If jumping
         player.nudge(0, GRAVITY) # Be affected by gravity
     else: # If on the ground
@@ -144,8 +159,7 @@ while running:
     player.move(None, None) # Apply player velocity
 
     # Screen drawing
-    # screen.blit(background, (0, 0)) # Background
-    screen.fill(BLUE)
+    screen.fill(BLUE) # Background
     player.draw()
     for platform in platforms.sprites():
         platform.move(350 + -player.rect.y)
