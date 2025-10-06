@@ -20,6 +20,8 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Ball Jump")
 clock = pygame.time.Clock()
 
+max_platform_y = -880
+
 # Class Definitions
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -68,12 +70,14 @@ class Player(pygame.sprite.Sprite):
             self.grounded = True # We are on the ground
             self.vy = 0 # Stop falling (set y velocity to 0)
 
-        if self.rect.y > self.max_height:
+        if self.rect.y < self.max_height:
             self.max_height = self.rect.y
 
     def nudge(self, x, y): # Add velocity
         self.vx += x # Add to x velocity
         self.vy += y # Add to y velocity
+        if self.vy < -20:
+            self.vy = -20
 
     def ground_check(self): # See if we're grounded
         self.rect.y += 1 # Try moving down
@@ -102,7 +106,7 @@ player = Player(0, 450)
 platforms.add(Platform(0, SCREEN_HEIGHT - 60, 640, 60)) # Manually add platforms temporarily before making level setup
 #platforms.add(Platform(100, 400, 100, 20))
 
-for y in range(8): # left side platforms
+for y in range(7): # left side platforms
     #x = random.randint(0,SCREEN_WIDTH - 100)
     w = random.randint(75, 200)
 
@@ -130,6 +134,8 @@ running = True
 frames = 0
 while running:
     frames += 1
+    if frames % 100 == 0:
+        print(player.rect.y, player.max_height, max_platform_y)
     for event in pygame.event.get(): # All mouse and keyboard events
         if event.type == pygame.QUIT: # Exit game
             running = False
@@ -138,6 +144,19 @@ while running:
             target_position = pygame.mouse.get_pos() # Target the click
             player.nudge((target_position[0] - player.rect.centerx) / (SCREEN_WIDTH/10),
             (target_position[1] - 350) / (SCREEN_HEIGHT/30)) # Math to scale how hard we jump and get the right direction
+
+    if player.max_height - 400 < max_platform_y:
+        w = random.randint(75, 200)
+        plat = Platform(0, max_platform_y - 80, w, 20)
+        platforms.add(plat)
+        all_sprites.add(plat)
+
+        w = random.randint(75, 200)
+        plat = Platform(SCREEN_WIDTH - w, max_platform_y - 200, w, 20)
+        platforms.add(plat)
+        all_sprites.add(plat)
+
+        max_platform_y -= 200
 
     if not player.grounded: # If jumping
         player.nudge(0, GRAVITY) # Be affected by gravity
