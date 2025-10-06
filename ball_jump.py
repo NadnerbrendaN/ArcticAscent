@@ -20,6 +20,8 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Ball Jump")
 clock = pygame.time.Clock()
 
+# background = pygame.image.load('background.png').convert_alpha()
+
 # Class Definitions
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -87,8 +89,9 @@ class Player(pygame.sprite.Sprite):
 class Platform(pygame.sprite.Sprite): # Platforms
     def __init__(self, x, y, w, h):
         super().__init__()
-        self.image = pygame.surface.Surface((w, h))
-        self.image.fill(GREEN)
+        self.image = pygame.image.load('ice_texture.png').convert_alpha()
+
+        # self.image.fill(GREEN)
         self.rect = self.image.get_rect(topleft=(x, y))
 
     def move(self, y):
@@ -99,27 +102,21 @@ all_sprites = pygame.sprite.Group()
 
 player = Player(0, 450)
 
-platforms.add(Platform(0, SCREEN_HEIGHT - 60, 640, 60)) # Manually add platforms temporarily before making level setup
-#platforms.add(Platform(100, 400, 100, 20))
+for x in range(3): #starting platform
+    for y in range(15):
+        platforms.add(Platform(200 * x, SCREEN_HEIGHT + y * 20, 640, 300))
 
 for y in range(8): # left side platforms
     #x = random.randint(0,SCREEN_WIDTH - 100)
-    w = random.randint(75, 200)
+    w = random.randint(100, 180)
 
-    platforms.add(Platform(0, y * 200 - (8 * 100), w, 20))
+    platforms.add(Platform(w - 200, y * 250 - (900), w, 20))
 
 for y in range(8): # right side platforms
     #x = random.randint(0,SCREEN_WIDTH - 100)
-    w = random.randint(75, 200)
+    w = random.randint(100, 180)
 
-    platforms.add(Platform(SCREEN_WIDTH - w, y * 200 - (8 * 100 + 80), w, 20))
-
-# for y in range(8): # middle platforms
-#     add = random.randint(0, 100) < 50
-#
-#     if(add):
-#         platforms.add(Platform(SCREEN_WIDTH / 2 - 60 / 2, y * 160 - 740, 60, 20))
-
+    platforms.add(Platform(SCREEN_WIDTH - w, y * 250 - (900 + 115), w, 20))
 
 all_sprites.add(platforms)
 
@@ -147,7 +144,8 @@ while running:
     player.move(None, None) # Apply player velocity
 
     # Screen drawing
-    screen.fill(BLUE) # Background
+    # screen.blit(background, (0, 0)) # Background
+    screen.fill(BLUE)
     player.draw()
     for platform in platforms.sprites():
         platform.move(350 + -player.rect.y)
