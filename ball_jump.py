@@ -255,6 +255,8 @@ while running:
 
     # Draw platforms with camera offset
     for platform in platforms.sprites():
+        if isinstance(platform, MovingPlatform):
+            platform.tick()
         platform.draw(camera)
 
     # Draw player with camera offset
