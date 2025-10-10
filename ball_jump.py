@@ -1,5 +1,4 @@
 import random
-
 import pygame
 import sys
 
@@ -13,12 +12,17 @@ FRICTION = 0.05 # The constant of friction
 RED = (243, 139, 168)
 GREEN = (166, 227, 161)
 BLUE = (137, 180, 250)
+BLACK = (0, 0, 0)
 
 # Initialize Pygame
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Ball Jump")
 clock = pygame.time.Clock()
+
+pygame.font.init()
+font = pygame.font.SysFont('Rockwell', 30)
+score = font.render(str(0), True, RED)
 
 max_platform_y = -880
 
@@ -34,6 +38,7 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(topleft=(x, y))
         self.mask = pygame.mask.from_surface(self.image)
 
+        self.collided = None
         self.max_height = y
 
         self.vx = 0 # Instance fields for velocity
@@ -81,12 +86,17 @@ class Player(pygame.sprite.Sprite):
 
     def ground_check(self): # See if we're grounded
         self.rect.y += 1 # Try moving down
-        self.grounded = pygame.sprite.spritecollideany(self, platforms)
+        self.collided = pygame.sprite.spritecollideany(self, platforms)
+        self.grounded = self.collided is not None
         self.rect.y -= 1 # Move back up
 
     def draw(self):
         rect = pygame.Rect(self.rect.x, 350, self.rect.width, self.rect.height)
         screen.blit(self.image, rect)
+
+player = Player(0, 450)
+player_group = pygame.sprite.Group()
+player_group.add(player)
 
 class Platform(pygame.sprite.Sprite): # Platforms
     def __init__(self, x, y, w, h):
@@ -99,10 +109,21 @@ class Platform(pygame.sprite.Sprite): # Platforms
     def move(self, y):
         self.rect.y += y
 
+class MovingPlatform(Platform):
+    def __init__(self, x, y, w, h, vel):
+        super().__init__(x, y, w, h)
+        self.velocity = vel
+
+    def tick(self):
+        self.rect.x += self.velocity
+        if self.rect.x + self.rect.width < 0 or self.rect.x > SCREEN_WIDTH:
+            self.velocity *= -1
+            self.rect.x += 2*self.velocity
+        if player.grounded and player.collided is self:
+            player.rect.x += self.velocity
+
 platforms = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
-
-player = Player(0, 450)
 
 for x in range(3): #starting platform
     for y in range(15):
@@ -112,13 +133,13 @@ for y in range(7): # left side platforms
     #x = random.randint(0,SCREEN_WIDTH - 100)
     w = random.randint(100, 180)
 
-    platforms.add(Platform(w - 200, y * 250 - (900), w, 20))
+    platforms.add(MovingPlatform(w - 200, y * 250 - (900), w, 20, random.randint(1, 4)))
 
 for y in range(8): # right side platforms
     #x = random.randint(0,SCREEN_WIDTH - 100)
     w = random.randint(100, 180)
 
-    platforms.add(Platform(SCREEN_WIDTH - w, y * 250 - (900 + 115), w, 20))
+    platforms.add(MovingPlatform(SCREEN_WIDTH - w, y * 250 - (900 + 115), w, 20, random.randint(1, 4)))
 
 all_sprites.add(platforms)
 
@@ -140,12 +161,12 @@ while running:
 
     if player.max_height - 400 < max_platform_y:
         w = random.randint(75, 200)
-        plat = Platform(0, max_platform_y - 80, w, 20)
+        plat = MovingPlatform(0, max_platform_y - 80, w, 20, random.randint(1, 4))
         platforms.add(plat)
         all_sprites.add(plat)
 
         w = random.randint(75, 200)
-        plat = Platform(SCREEN_WIDTH - w, max_platform_y - 200, w, 20)
+        plat = MovingPlatform(SCREEN_WIDTH - w, max_platform_y - 200, w, 20, random.randint(1, 4))
         platforms.add(plat)
         all_sprites.add(plat)
 
@@ -158,15 +179,20 @@ while running:
 
     player.move(None, None) # Apply player velocity
 
+    score = font.render(str(585 - player.rect.y), True, BLACK)
+
     # Screen drawing
     screen.fill(BLUE) # Background
     player.draw()
     for platform in platforms.sprites():
         platform.move(350 + -player.rect.y)
+        if isinstance(platform, MovingPlatform):
+            platform.tick()
     all_sprites.draw(screen) # Draw everything
     for platform in platforms.sprites():
         platform.move(-350 + player.rect.y)
     pygame.draw.circle(screen, RED, target_position, 3) # Draw a circle where you clicked
+    screen.blit(score, (250 - .5*score.get_rect().width, 10))
 
     pygame.display.flip()
 
