@@ -193,14 +193,6 @@ for x in range(3):
         platforms.add(plat)
         all_sprites.add(plat)
 
-    platforms.add(MovingPlatform(w - 200, y * 250 - (900), w, 20, random.randint(1, 4)))
-
-for y in range(8): # right side platforms
-    #x = random.randint(0,SCREEN_WIDTH - 100)
-    w = random.randint(100, 180)
-
-    platforms.add(MovingPlatform(SCREEN_WIDTH - w, y * 250 - (900 + 115), w, 20, random.randint(1, 4)))
-
 all_sprites.add(platforms)
 
 target_position = (0, 0) # Set the player's click offscreen temporarily
