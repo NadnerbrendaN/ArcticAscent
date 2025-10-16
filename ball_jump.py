@@ -202,6 +202,7 @@ class MovingPlatform(Platform):
     def tick(self):
         # Move the platform first
         self.rect.x += self.velocity
+        if self.rect.x + self.rect.width < 50 or self.rect.x + 50 > SCREEN_WIDTH:
 
         # Reverse direction if hitting boundaries
         if self.rect.x + self.rect.width < 50 or self.rect.x > (SCREEN_WIDTH - 50):
@@ -222,8 +223,9 @@ class MovingPlatform(Platform):
 platforms = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 
-player = Player(0, 450)
-camera = Camera()
+player = Player(0, 580)
+camera = Camera()  # Create camera instance
+frames_from_start = 0
 
 # Create snowflakes
 snowflakes = [Snowflake() for _ in range(NUM_SNOWFLAKES)]
@@ -249,6 +251,8 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+            player = Player(0, 580)
         if event.type == pygame.MOUSEBUTTONUP and player.grounded:
             player.grounded = False
             target_position = pygame.mouse.get_pos()
@@ -282,7 +286,13 @@ while running:
     player.move(None, None)
 
     # Update camera to follow player smoothly
-    camera.update(player.rect.y)
+    if 585-player.max_height >= 500 and frames_from_start != -1 and player.grounded:
+        frames_from_start += 1
+        camera.update(585)
+        if frames_from_start == 180:
+            frames_from_start = -1
+    else:
+        camera.update(player.rect.y)
 
     # Update snowflakes
     for snowflake in snowflakes:
