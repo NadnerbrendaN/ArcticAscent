@@ -1,5 +1,4 @@
 import random
-
 import pygame
 import sys
 
@@ -8,13 +7,14 @@ SCREEN_WIDTH = 500
 SCREEN_HEIGHT = 600
 FPS = 60
 GRAVITY = 0.5
-FRICTION = 0.05
-CAMERA_SMOOTH = 0.2  # Camera smoothing factor (0.1 = smooth, 1.0 = instant)
-NUM_SNOWFLAKES = 100  # Number of snowflakes
+FRICTION = 0.15
+CAMERA_SMOOTH = 0.1
+NUM_SNOWFLAKES = 100
 
 RED = (243, 139, 168)
 GREEN = (166, 227, 161)
 BLUE = (137, 180, 250)
+DARK_BLUE = (0, 35, 130)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
@@ -28,27 +28,26 @@ pygame.font.init()
 font = pygame.font.SysFont('Rockwell', 30)
 score = font.render(str(0), True, RED)
 
-max_platform_y = -880
-background = pygame.image.load("background.png").convert()
+end_font = pygame.font.SysFont('Rockwell', 60)
 
 max_platform_y = 600
+background = pygame.image.load("background.png").convert()
+lava = pygame.image.load("lava.png").convert()
+game_over = pygame.image.load("game_over.png").convert()
 
+dead = False
 
 # Camera class for smooth following
 class Camera:
     def __init__(self):
-        self.y = 0  # Current camera y position
-        self.target_y = 0  # Where the camera wants to be
+        self.y = 0
+        self.target_y = 0
 
     def update(self, player_y):
-        # The target is to keep the player at a certain position on screen (e.g., y=350)
         self.target_y = player_y - 350
-
-        # Smoothly interpolate towards the target
         self.y += (self.target_y - self.y) * CAMERA_SMOOTH
 
     def apply(self, entity_y):
-        # Convert world position to screen position
         return entity_y - self.y
 
 
@@ -104,6 +103,11 @@ class Player(pygame.sprite.Sprite):
         if y is None:
             y = self.vy
 
+        # Store original position for safer collision resolution
+        original_x = self.rect.x
+        original_y = self.rect.y
+
+        # Handle horizontal movement
         if x != 0:
             self.rect.x += x
             if self.grounded and x != 0:
@@ -114,19 +118,37 @@ class Player(pygame.sprite.Sprite):
             elif self.vx < 0:
                 self.image = self.image_left
 
+            # Screen wrapping
             if self.rect.x + self.rect.width > SCREEN_WIDTH:
                 self.rect.x = SCREEN_WIDTH - self.rect.width
             elif self.rect.x < 0:
                 self.rect.x = 0
-            while pygame.sprite.spritecollideany(self, platforms):
-                self.rect.x -= x / abs(x)
+
+            # Check for horizontal collisions
+            collision = pygame.sprite.spritecollideany(self, platforms)
+            if collision:
+                # Revert to original position and stop horizontal movement
+                self.rect.x = original_x
                 self.vx = 0
 
-        self.rect.y += y
-        while pygame.sprite.spritecollideany(self, platforms):
-            self.rect.y -= y / abs(y)
-            self.grounded = True
-            self.vy = 0
+        # Update original_x after horizontal movement is finalized
+        original_x = self.rect.x
+
+        # Handle vertical movement separately
+        if y != 0:
+            self.rect.y += y
+
+            # Check for vertical collisions
+            collision = pygame.sprite.spritecollideany(self, platforms)
+            if collision:
+                if y > 0:  # Moving down (landing on platform)
+                    self.rect.bottom = collision.rect.top
+                    self.grounded = True
+                    self.vy = 0
+                    self.collided = collision
+                else:  # Moving up (hitting platform from below)
+                    self.rect.top = collision.rect.bottom
+                    self.vy = 0
 
         if self.rect.y < self.max_height:
             self.max_height = self.rect.y
@@ -137,33 +159,40 @@ class Player(pygame.sprite.Sprite):
         if self.vy < -20:
             self.vy = -20
 
-    def ground_check(self): # See if we're grounded
-        self.rect.y += 1 # Try moving down
+    def ground_check(self):
+        global dead
+
+        self.rect.y += 2
         self.collided = pygame.sprite.spritecollideany(self, platforms)
+
+        if isinstance(self.collided, Lava):
+            dead = True
+
         self.grounded = self.collided is not None
-        self.rect.y -= 1 # Move back up
+        self.rect.y -= 2
 
     def draw(self, camera):
-        # Use camera to determine screen position
         screen_y = camera.apply(self.rect.y)
         screen.blit(self.image, (self.rect.x, screen_y))
 
-player = Player(0, 450)
-player_group = pygame.sprite.Group()
-player_group.add(player)
 
-class Platform(pygame.sprite.Sprite): # Platforms
+class Platform(pygame.sprite.Sprite):
     def __init__(self, x, y, w, h):
         super().__init__()
         self.image = pygame.image.load('ice_texture.png').convert_alpha()
         self.rect = self.image.get_rect(topleft=(x, y))
-        self.world_y = y  # Store the world position
+        self.world_y = y
 
     def draw(self, camera):
-        # Use camera to determine screen position
         screen_y = camera.apply(self.world_y)
         screen.blit(self.image, (self.rect.x, screen_y))
 
+class Lava(Platform):
+    def __init__(self, x, y, w, h):
+        super().__init__(x, y, w, h)
+        self.image = pygame.image.load('lava.png').convert_alpha()
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.world_y = y
 
 class MovingPlatform(Platform):
     def __init__(self, x, y, w, h, vel):
@@ -171,31 +200,46 @@ class MovingPlatform(Platform):
         self.velocity = vel
 
     def tick(self):
+        # Move the platform first
         self.rect.x += self.velocity
-        if self.rect.x + self.rect.width < 0 or self.rect.x > SCREEN_WIDTH:
+
+        # Reverse direction if hitting boundaries
+        if self.rect.x + self.rect.width < 50 or self.rect.x > (SCREEN_WIDTH - 50):
             self.velocity *= -1
-            self.rect.x += 2*self.velocity
+            self.rect.x += 2 * self.velocity
+
+        # Move player with platform if standing on it
         if player.grounded and player.collided is self:
             player.rect.x += self.velocity
+
+            # Keep player on screen when riding platform
+            if player.rect.x + player.rect.width > SCREEN_WIDTH:
+                player.rect.x = SCREEN_WIDTH - player.rect.width
+            elif player.rect.x < 0:
+                player.rect.x = 0
+
 
 platforms = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 
 player = Player(0, 450)
-camera = Camera()  # Create camera instance
+camera = Camera()
 
 # Create snowflakes
 snowflakes = [Snowflake() for _ in range(NUM_SNOWFLAKES)]
 
+# Beginning platform
 for x in range(3):
     for y in range(15):
         plat = Platform(200 * x, SCREEN_HEIGHT + y * 20, 640, 300)
         platforms.add(plat)
         all_sprites.add(plat)
 
-all_sprites.add(platforms)
+#lava
+for y in range(0, 15):
+    platforms.add(Lava(0, SCREEN_HEIGHT + 220 - 20 * y, 500, 20))
 
-target_position = (0, 0) # Set the player's click offscreen temporarily
+target_position = (0, 0)
 
 # Loop
 running = True
@@ -213,18 +257,22 @@ while running:
 
     if player.max_height - 400 < max_platform_y:
         # Left platforms
-        w = random.randint(75, 200)
-        plat = MovingPlatform(0, max_platform_y - 80, w, 20, random.randint(1, 4))
+        plat = MovingPlatform(0, max_platform_y - 115, 200, 20, random.randint(1, 4))
         platforms.add(plat)
         all_sprites.add(plat)
 
         # Right platforms
-        w = random.randint(75, 200)
-        plat = MovingPlatform(SCREEN_WIDTH - w, max_platform_y - 200, w, 20, random.randint(1, 4))
+        #w = random.randint(75, 200)
+        plat = MovingPlatform(SCREEN_WIDTH - 200, max_platform_y - 250, 200, 20, random.randint(1, 4))
         platforms.add(plat)
         all_sprites.add(plat)
 
         max_platform_y -= 250
+
+    # Update moving platforms BEFORE player movement
+    for platform in platforms.sprites():
+        if isinstance(platform, MovingPlatform):
+            platform.tick()
 
     if not player.grounded:
         player.nudge(0, GRAVITY)
@@ -240,25 +288,31 @@ while running:
     for snowflake in snowflakes:
         snowflake.update(camera)
 
-    score = font.render(str(585 - player.rect.y), True, BLACK)
+    score = font.render(str(max(0, 585 - player.max_height)), True, BLACK)
+    end_score = end_font.render(str(max(0, 585 - player.max_height)), True, DARK_BLUE)
 
     # Screen drawing
     screen.blit(background, (0, 0))
 
     # Draw platforms with camera offset
     for platform in platforms.sprites():
-        if isinstance(platform, MovingPlatform):
-            platform.tick()
         platform.draw(camera)
 
     # Draw player with camera offset
     player.draw(camera)
 
+    screen.blit(score, (10, 10))
+
     pygame.draw.circle(screen, RED, target_position, 3)
 
-    # Draw snowflakes on top (separate from camera, stays on screen)
+    # Draw snowflakes on top
     for snowflake in snowflakes:
         snowflake.draw(camera)
+
+    # death screen
+    if dead:
+        screen.blit(game_over, (0, 0))
+        screen.blit(end_score, (275, 370))
 
     pygame.display.flip()
 
