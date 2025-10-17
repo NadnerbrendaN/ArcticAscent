@@ -203,9 +203,6 @@ class MovingPlatform(Platform):
         # Move the platform first
         self.rect.x += self.velocity
         if self.rect.x + self.rect.width < 50 or self.rect.x + 50 > SCREEN_WIDTH:
-
-        # Reverse direction if hitting boundaries
-        if self.rect.x + self.rect.width < 50 or self.rect.x > (SCREEN_WIDTH - 50):
             self.velocity *= -1
             self.rect.x += 2 * self.velocity
 
@@ -238,8 +235,10 @@ for x in range(3):
         all_sprites.add(plat)
 
 #lava
-for y in range(0, 15):
-    platforms.add(Lava(0, SCREEN_HEIGHT + 220 - 20 * y, 500, 20))
+for y in range(0, 25):
+    lav = Lava(0, SCREEN_HEIGHT + 820 - 20 * y, 500, 20);
+    platforms.add(lav)
+    all_sprites.add(lav)
 
 target_position = (0, 0)
 
@@ -253,6 +252,7 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
             player = Player(0, 580)
+            dead = False
         if event.type == pygame.MOUSEBUTTONUP and player.grounded:
             player.grounded = False
             target_position = pygame.mouse.get_pos()
@@ -277,6 +277,9 @@ while running:
     for platform in platforms.sprites():
         if isinstance(platform, MovingPlatform):
             platform.tick()
+        if isinstance(platform, Lava) and frames % 3 == 0:
+            platform.world_y -= 1
+            platform.rect.y -= 1
 
     if not player.grounded:
         player.nudge(0, GRAVITY)
@@ -306,7 +309,12 @@ while running:
 
     # Draw platforms with camera offset
     for platform in platforms.sprites():
-        platform.draw(camera)
+        if not isinstance(platform, Lava):
+            platform.draw(camera)
+
+    for platform in platforms.sprites():
+        if isinstance(platform, Lava):
+            platform.draw(camera)
 
     # Draw player with camera offset
     player.draw(camera)
