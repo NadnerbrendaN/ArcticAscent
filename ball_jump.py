@@ -266,7 +266,6 @@ while running:
         all_sprites.add(plat)
 
         # Right platforms
-        #w = random.randint(75, 200)
         plat = MovingPlatform(SCREEN_WIDTH - 200, max_platform_y - 250, 200, 20, random.randint(1, 4))
         platforms.add(plat)
         all_sprites.add(plat)
@@ -319,7 +318,7 @@ while running:
     # Draw player with camera offset
     player.draw(camera)
 
-    screen.blit(score, (10, 10))
+    screen.blit(score, (SCREEN_WIDTH / 2 - score.get_width() / 2, 30))
 
     pygame.draw.circle(screen, RED, target_position, 3)
 
