@@ -193,6 +193,7 @@ class Lava(Platform):
         self.image = pygame.image.load('lava.png').convert_alpha()
         self.rect = self.image.get_rect(topleft=(x, y))
         self.world_y = y
+        self.orig_y = y
 
 class MovingPlatform(Platform):
     def __init__(self, x, y, w, h, vel):
@@ -236,7 +237,7 @@ for x in range(3):
 
 #lava
 for y in range(0, 25):
-    lav = Lava(0, SCREEN_HEIGHT + 820 - 20 * y, 500, 20);
+    lav = Lava(0, SCREEN_HEIGHT + 720 - 20 * y, 500, 20);
     platforms.add(lav)
     all_sprites.add(lav)
 
@@ -253,6 +254,11 @@ while running:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
             player = Player(0, 580)
             dead = False
+            frames_from_start = 0
+            for platform in platforms:
+                if isinstance(platform, Lava):
+                    platform.world_y = platform.orig_y
+                    platform.rect.y = platform.orig_y
         if event.type == pygame.MOUSEBUTTONUP and player.grounded:
             player.grounded = False
             target_position = pygame.mouse.get_pos()
@@ -277,14 +283,14 @@ while running:
     for platform in platforms.sprites():
         if isinstance(platform, MovingPlatform):
             platform.tick()
-        if isinstance(platform, Lava) and frames % 3 == 0:
+        if isinstance(platform, Lava) and frames % 3 == 0 and frames_from_start != 0:
             platform.world_y -= 1
             platform.rect.y -= 1
 
     if not player.grounded:
         player.nudge(0, GRAVITY)
-    else:
-        player.ground_check()
+
+    player.ground_check()
 
     player.move(None, None)
 
