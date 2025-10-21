@@ -1,5 +1,6 @@
 import random
 import pygame
+import math
 import sys
 
 # Constant Definition
@@ -156,8 +157,8 @@ class Player(pygame.sprite.Sprite):
     def nudge(self, x, y):
         self.vx += x
         self.vy += y
-        if self.vy < -20:
-            self.vy = -20
+        if self.vy > 20:
+            self.vy = 20
 
     def ground_check(self):
         global dead
@@ -166,7 +167,8 @@ class Player(pygame.sprite.Sprite):
         self.collided = pygame.sprite.spritecollideany(self, platforms)
 
         if isinstance(self.collided, Lava):
-            dead = True
+            # dead = True
+            self.collided = None
 
         self.grounded = self.collided is not None
         self.rect.y -= 2
@@ -283,9 +285,9 @@ while running:
     for platform in platforms.sprites():
         if isinstance(platform, MovingPlatform):
             platform.tick()
-        if isinstance(platform, Lava) and frames % 3 == 0 and frames_from_start != 0:
-            platform.world_y -= 1
-            platform.rect.y -= 1
+        if isinstance(platform, Lava) and frames_from_start != 0:
+            platform.world_y -= math.sqrt((585-player.max_height)/8192)
+            platform.rect.y = platform.world_y
 
     if not player.grounded:
         player.nudge(0, GRAVITY)
@@ -294,12 +296,12 @@ while running:
 
     player.move(None, None)
 
-    # Update camera to follow player smoothly
-    if 585-player.max_height >= 500 and frames_from_start != -1 and player.grounded:
+    if 585 - player.max_height >= 500:
         frames_from_start += 1
+
+    # Update camera to follow player smoothly
+    if 0 < frames_from_start <= 180 and player.grounded:
         camera.update(585)
-        if frames_from_start == 180:
-            frames_from_start = -1
     else:
         camera.update(player.rect.y)
 
