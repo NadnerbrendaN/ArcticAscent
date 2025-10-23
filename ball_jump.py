@@ -36,7 +36,8 @@ background = pygame.image.load("background.png").convert()
 lava = pygame.image.load("lava.png").convert()
 game_over = pygame.image.load("game_over.png").convert()
 
-dead = False
+dead = 0
+initials = ""
 
 # Camera class for smooth following
 class Camera:
@@ -166,9 +167,8 @@ class Player(pygame.sprite.Sprite):
         self.rect.y += 2
         self.collided = pygame.sprite.spritecollideany(self, platforms)
 
-        if isinstance(self.collided, Lava):
-            # dead = True
-            self.collided = None
+        if isinstance(self.collided, Lava) and dead == 0:
+            dead = 1
 
         self.grounded = self.collided is not None
         self.rect.y -= 2
@@ -230,6 +230,12 @@ frames_from_start = 0
 # Create snowflakes
 snowflakes = [Snowflake() for _ in range(NUM_SNOWFLAKES)]
 
+#lava
+for y in range(0, 25):
+    lav = Lava(0, SCREEN_HEIGHT + 720 - 20 * y, 500, 20);
+    platforms.add(lav)
+    all_sprites.add(lav)
+
 # Beginning platform
 for x in range(3):
     for y in range(15):
@@ -237,11 +243,6 @@ for x in range(3):
         platforms.add(plat)
         all_sprites.add(plat)
 
-#lava
-for y in range(0, 25):
-    lav = Lava(0, SCREEN_HEIGHT + 720 - 20 * y, 500, 20);
-    platforms.add(lav)
-    all_sprites.add(lav)
 
 target_position = (0, 0)
 
@@ -253,14 +254,25 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-            player = Player(0, 580)
-            dead = False
-            frames_from_start = 0
-            for platform in platforms:
-                if isinstance(platform, Lava):
-                    platform.world_y = platform.orig_y
-                    platform.rect.y = platform.orig_y
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_r and dead != 1:
+                player = Player(0, 580)
+                dead = 0
+                frames_from_start = 0
+                for platform in platforms:
+                    if isinstance(platform, Lava):
+                        platform.world_y = platform.orig_y
+                        platform.rect.y = platform.orig_y
+            if dead == 1 and event.key == pygame.K_RETURN and len(initials) == 3:
+                with open("scores.txt", "a") as f:
+                    f.write(initials+","+str(585-player.max_height)+"\n")
+                dead = 2
+            if dead == 1 and event.key == pygame.K_BACKSPACE and len(initials) > 0:
+                initials = initials[:-1]
+                print(initials)
+            if dead == 1 and len(pygame.key.name(event.key)) == 1 and not pygame.key.name(event.key).isnumeric() and len(initials) < 3:
+                initials += pygame.key.name(event.key)
+                print(initials)
         if event.type == pygame.MOUSEBUTTONUP and player.grounded:
             player.grounded = False
             target_position = pygame.mouse.get_pos()
@@ -286,7 +298,7 @@ while running:
         if isinstance(platform, MovingPlatform):
             platform.tick()
         if isinstance(platform, Lava) and frames_from_start != 0:
-            platform.world_y -= math.sqrt((585-player.max_height)/8192)
+            platform.world_y -= ((585-player.max_height - 500)**0.01)/3
             platform.rect.y = platform.world_y
 
     if not player.grounded:
@@ -336,9 +348,11 @@ while running:
         snowflake.draw(camera)
 
     # death screen
-    if dead:
+    if dead == 1:
         screen.blit(game_over, (0, 0))
         screen.blit(end_score, (275, 370))
+#    elif dead == 2:
+#        screen.blit(game_over, (0, 0))
 
     pygame.display.flip()
 
