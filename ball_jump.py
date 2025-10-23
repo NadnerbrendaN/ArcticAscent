@@ -34,7 +34,8 @@ end_font = pygame.font.SysFont('Rockwell', 60)
 max_platform_y = 600
 background = pygame.image.load("background.png").convert()
 lava = pygame.image.load("lava.png").convert()
-game_over = pygame.image.load("game_over.png").convert()
+death_1 = pygame.image.load("death_1.png").convert()
+death_2 = pygame.image.load("death_2.png").convert()
 
 dead = False
 
@@ -167,8 +168,8 @@ class Player(pygame.sprite.Sprite):
         self.collided = pygame.sprite.spritecollideany(self, platforms)
 
         if isinstance(self.collided, Lava):
-            # dead = True
-            self.collided = None
+            dead = True
+            # self.collided = None
 
         self.grounded = self.collided is not None
         self.rect.y -= 2
@@ -230,18 +231,19 @@ frames_from_start = 0
 # Create snowflakes
 snowflakes = [Snowflake() for _ in range(NUM_SNOWFLAKES)]
 
-# Beginning platform
-for x in range(3):
-    for y in range(15):
-        plat = Platform(200 * x, SCREEN_HEIGHT + y * 20, 640, 300)
-        platforms.add(plat)
-        all_sprites.add(plat)
 
 #lava
 for y in range(0, 25):
     lav = Lava(0, SCREEN_HEIGHT + 720 - 20 * y, 500, 20);
     platforms.add(lav)
     all_sprites.add(lav)
+
+# Beginning platform
+for x in range(3):
+    for y in range(15):
+        plat = Platform(200 * x, SCREEN_HEIGHT + y * 20, 640, 300)
+        platforms.add(plat)
+        all_sprites.add(plat)
 
 target_position = (0, 0)
 
@@ -285,7 +287,8 @@ while running:
         if isinstance(platform, MovingPlatform):
             platform.tick()
         if isinstance(platform, Lava) and frames_from_start != 0:
-            platform.world_y -= math.sqrt((585-player.max_height)/8192)
+            #platform.world_y -= math.sqrt((585-player.max_height)/8192)
+            platform.world_y -= math.pow(585 - player.max_height, .1) / 3
             platform.rect.y = platform.world_y
 
     if not player.grounded:
@@ -336,8 +339,8 @@ while running:
 
     # death screen
     if dead:
-        screen.blit(game_over, (0, 0))
-        screen.blit(end_score, (275, 370))
+        screen.blit(death_1, (0, 0))
+        screen.blit(end_score, (275, 350))
 
     pygame.display.flip()
 
