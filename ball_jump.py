@@ -34,7 +34,8 @@ end_font = pygame.font.SysFont('Rockwell', 60)
 max_platform_y = 600
 background = pygame.image.load("background.png").convert()
 lava = pygame.image.load("lava.png").convert()
-game_over = pygame.image.load("game_over.png").convert()
+death_1 = pygame.image.load("death_1.png").convert()
+death_2 = pygame.image.load("death_2.png").convert()
 
 dead = 0
 initials = ""
@@ -286,7 +287,6 @@ while running:
         all_sprites.add(plat)
 
         # Right platforms
-        #w = random.randint(75, 200)
         plat = MovingPlatform(SCREEN_WIDTH - 200, max_platform_y - 250, 200, 20, random.randint(1, 4))
         platforms.add(plat)
         all_sprites.add(plat)
@@ -339,7 +339,7 @@ while running:
     # Draw player with camera offset
     player.draw(camera)
 
-    screen.blit(score, (10, 10))
+    screen.blit(score, (SCREEN_WIDTH / 2 - score.get_width() / 2, 30))
 
     pygame.draw.circle(screen, RED, target_position, 3)
 
@@ -349,10 +349,10 @@ while running:
 
     # death screen
     if dead == 1:
-        screen.blit(game_over, (0, 0))
-        screen.blit(end_score, (275, 370))
-#    elif dead == 2:
-#        screen.blit(game_over, (0, 0))
+        screen.blit(death_1, (0, 0))
+        screen.blit(end_score, (275, 350))
+    elif dead == 2:
+        screen.blit(death_2, (0, 0))
 
     pygame.display.flip()
 
