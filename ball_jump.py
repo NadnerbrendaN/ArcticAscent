@@ -21,7 +21,7 @@ BLACK = (0, 0, 0)
 # Initialize Pygame
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Ball Jump")
+pygame.display.set_caption("Arctic Ascent")
 clock = pygame.time.Clock()
 
 pygame.font.init()
@@ -259,6 +259,7 @@ while running:
                 player = Player(0, 580)
                 dead = 0
                 frames_from_start = 0
+                initials = ""
                 for platform in platforms:
                     if isinstance(platform, Lava):
                         platform.world_y = platform.orig_y
@@ -271,7 +272,7 @@ while running:
                 initials = initials[:-1]
                 print(initials)
             if dead == 1 and len(pygame.key.name(event.key)) == 1 and not pygame.key.name(event.key).isnumeric() and len(initials) < 3:
-                initials += pygame.key.name(event.key)
+                initials += pygame.key.name(event.key).upper()
                 print(initials)
         if event.type == pygame.MOUSEBUTTONUP and player.grounded:
             player.grounded = False
@@ -350,8 +351,34 @@ while running:
     if dead == 1:
         screen.blit(death_1, (0, 0))
         screen.blit(end_score, (275, 350))
+        for i in range(len(initials)):
+            rend = end_font.render(initials[i], True, BLACK)
+            screen.blit(rend, (128 + (24 - rend.get_width()/2) + i*96, 522))
     elif dead == 2:
         screen.blit(death_2, (0, 0))
+        with open("scores.txt") as data:
+            maxes = [["", 0], ["", 0], ["", 0], ["", 0], ["", 0]]
+            for line in data:
+                parts = line.split(",")
+                this_score = int(parts[1])
+                if this_score > maxes[0][1]:
+                    maxes[4] = maxes[3]
+                    maxes[3] = maxes[2]
+                    maxes[2] = maxes[1]
+                    maxes[1] = maxes[0]
+                    maxes[0] = [parts[0], this_score]
+                elif this_score > maxes[1][1]:
+                    maxes[4] = maxes[3]
+                    maxes[3] = maxes[2]
+                    maxes[2] = maxes[1]
+                    maxes[1] = [parts[0], this_score]
+                elif this_score > maxes[2][1]:
+                    maxes[4] = maxes[3]
+                    maxes[3] = maxes[2]
+                    maxes[2] = [parts[0], this_score]
+            for n in range(len(maxes)):
+                screen.blit(font.render(maxes[n][0], True, BLACK), (120, 385 + n*30))
+                screen.blit(font.render(str(maxes[n][1]) if str(maxes[n][1]) != "0" else "", True, BLACK), (290, 385 + n*30))
 
     pygame.display.flip()
 
