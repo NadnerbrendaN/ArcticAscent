@@ -357,6 +357,29 @@ while running:
             screen.blit(rend, (128 + (24 - rend.get_width()/2) + i*96, 522))
     elif dead == 2:
         screen.blit(death_2, (0, 0))
+        with open("scores.txt") as data:
+            maxes = [["", 0], ["", 0], ["", 0], ["", 0], ["", 0]]
+            for line in data:
+                parts = line.split(",")
+                this_score = int(parts[1])
+                if this_score > maxes[0][1]:
+                    maxes[4] = maxes[3]
+                    maxes[3] = maxes[2]
+                    maxes[2] = maxes[1]
+                    maxes[1] = maxes[0]
+                    maxes[0] = [parts[0], this_score]
+                elif this_score > maxes[1][1]:
+                    maxes[4] = maxes[3]
+                    maxes[3] = maxes[2]
+                    maxes[2] = maxes[1]
+                    maxes[1] = [parts[0], this_score]
+                elif this_score > maxes[2][1]:
+                    maxes[4] = maxes[3]
+                    maxes[3] = maxes[2]
+                    maxes[2] = [parts[0], this_score]
+            for n in range(len(maxes)):
+                screen.blit(font.render(maxes[n][0], True, BLACK), (120, 385 + n*30))
+                screen.blit(font.render(str(maxes[n][1]) if str(maxes[n][1]) != "0" else "", True, BLACK), (290, 385 + n*30))
 
     pygame.display.flip()
 
