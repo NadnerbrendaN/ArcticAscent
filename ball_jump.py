@@ -35,8 +35,10 @@ background = pygame.image.load("background.png").convert()
 lava = pygame.image.load("lava.png").convert()
 death_1 = pygame.image.load("death_1.png").convert()
 death_2 = pygame.image.load("death_2.png").convert()
+intro_large = pygame.image.load("intro_screen_large.png").convert()
+intro_scaled = pygame.transform.scale(intro_large, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
-dead = 0
+dead = -1
 initials = ""
 
 # Camera class for smooth following
@@ -279,6 +281,8 @@ while running:
             target_position = pygame.mouse.get_pos()
             player.nudge((target_position[0] - player.rect.centerx) / (SCREEN_WIDTH / 10),
                          (target_position[1] - 350) / (SCREEN_HEIGHT / 30))
+        if event.type == pygame.MOUSEBUTTONUP and dead == -1:
+            dead = 0
 
     if player.max_height - 400 < max_platform_y:
         # Left platforms
@@ -298,7 +302,7 @@ while running:
         if isinstance(platform, MovingPlatform):
             platform.tick()
         if isinstance(platform, Lava) and frames_from_start != 0:
-            platform.world_y -= ((585-player.max_height - 500)**0.01)/3
+            platform.world_y -= ((585-player.max_height - 500)**0.1)/3
             platform.rect.y = platform.world_y
 
     if not player.grounded:
@@ -348,6 +352,9 @@ while running:
         snowflake.draw(camera)
 
     # death screen
+    if dead == -1:
+        screen.blit(intro_scaled, (0, 0))
+
     if dead == 1:
         screen.blit(death_1, (0, 0))
         screen.blit(end_score, (275, 350))
