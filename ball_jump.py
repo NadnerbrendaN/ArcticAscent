@@ -299,7 +299,7 @@ while running:
         if isinstance(platform, MovingPlatform):
             platform.tick()
         if isinstance(platform, Lava) and frames_from_start != 0:
-            platform.world_y -= ((585-player.max_height - 500)**0.01)/3
+            platform.world_y -= ((585-player.max_height - 500)**0.1)/3
             platform.rect.y = platform.world_y
 
     if not player.grounded:
@@ -377,6 +377,11 @@ while running:
                     maxes[4] = maxes[3]
                     maxes[3] = maxes[2]
                     maxes[2] = [parts[0], this_score]
+                elif this_score > maxes[3][1]:
+                    maxes[4] = maxes[3]
+                    maxes[3] = [parts[0], this_score]
+                elif this_score > maxes[4][1]:
+                    maxes[4] = [parts[0], this_score]
             for n in range(len(maxes)):
                 screen.blit(font.render(maxes[n][0], True, BLACK), (120, 385 + n*30))
                 screen.blit(font.render(str(maxes[n][1]) if str(maxes[n][1]) != "0" else "", True, BLACK), (290, 385 + n*30))
