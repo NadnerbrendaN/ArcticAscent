@@ -41,6 +41,7 @@ intro_scaled = pygame.transform.scale(intro_large, (SCREEN_WIDTH, SCREEN_HEIGHT)
 dead = -1
 initials = ""
 
+
 # Camera class for smooth following
 class Camera:
     def __init__(self):
@@ -191,6 +192,7 @@ class Platform(pygame.sprite.Sprite):
         screen_y = camera.apply(self.world_y)
         screen.blit(self.image, (self.rect.x, screen_y))
 
+
 class Lava(Platform):
     def __init__(self, x, y, w, h):
         super().__init__(x, y, w, h)
@@ -198,6 +200,88 @@ class Lava(Platform):
         self.rect = self.image.get_rect(topleft=(x, y))
         self.world_y = y
         self.orig_y = y
+
+
+class Snowball(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        # Create a simple snowball image (white circle)
+        self.radius = 15
+        self.image = pygame.Surface((self.radius * 2, self.radius * 2), pygame.SRCALPHA)
+        pygame.draw.circle(self.image, WHITE, (self.radius, self.radius), self.radius)
+        pygame.draw.circle(self.image, (200, 200, 200), (self.radius, self.radius), self.radius, 2)
+
+        self.rect = self.image.get_rect(center=(x, y))
+        self.world_y = y
+
+        self.vx = random.choice([-5, -4, 4, 5])  # Random horizontal velocity
+        self.vy = 0
+        self.grounded = False
+        self.min_speed = 2  # Minimum speed to maintain
+
+    def update(self):
+        # Apply gravity
+        if not self.grounded:
+            self.vy += GRAVITY
+
+        # Apply very minimal friction when on ground
+        if self.grounded and self.vx != 0:
+            friction = 0.01  # Much less friction than player
+            if self.vx > 0:
+                self.vx = max(self.min_speed, self.vx - friction)
+            else:
+                self.vx = min(-self.min_speed, self.vx + friction)
+
+        # Move horizontally
+        self.rect.x += self.vx
+
+        # Bounce off screen edges
+        if self.rect.left <= 0:
+            self.rect.left = 0
+            self.vx = abs(self.vx)  # Bounce right
+        elif self.rect.right >= SCREEN_WIDTH:
+            self.rect.right = SCREEN_WIDTH
+            self.vx = -abs(self.vx)  # Bounce left
+
+        # Move vertically
+        self.rect.y += self.vy
+        self.world_y = self.rect.y
+
+        # Check collision with platforms
+        collision = pygame.sprite.spritecollideany(self, platforms)
+        if collision and not isinstance(collision, Lava):
+            if self.vy > 0:  # Falling down
+                self.rect.bottom = collision.rect.top
+                self.world_y = self.rect.y
+                self.grounded = True
+                self.vy = 0
+            else:  # Moving up (hit bottom of platform)
+                self.rect.top = collision.rect.bottom
+                self.world_y = self.rect.y
+                self.vy = 0
+        else:
+            self.grounded = False
+
+        # Check collision with player and push them
+        if self.rect.colliderect(player.rect):
+            # Calculate push strength based on snowball velocity
+            push_force = 2.0
+
+            # Push player in the direction the snowball is moving
+            if self.rect.centerx < player.rect.centerx:
+                player.vx += push_force  # Push right
+            else:
+                player.vx -= push_force  # Push left
+
+            # Also give the player a slight upward bump if grounded
+            if player.grounded:
+                player.vy = -3
+                player.grounded = False
+
+    def draw(self, camera):
+        screen_y = camera.apply(self.world_y)
+        screen.blit(self.image, (self.rect.x, screen_y))
+
 
 class MovingPlatform(Platform):
     def __init__(self, x, y, w, h, vel):
@@ -224,17 +308,20 @@ class MovingPlatform(Platform):
 
 platforms = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
+snowballs = pygame.sprite.Group()
 
 player = Player(0, 580)
 camera = Camera()  # Create camera instance
 frames_from_start = 0
+snowball_spawn_timer = 0
+SNOWBALL_SPAWN_INTERVAL = 300  # Spawn a snowball every 300 frames (5 seconds at 60 FPS)
 
 # Create snowflakes
 snowflakes = [Snowflake() for _ in range(NUM_SNOWFLAKES)]
 
-#lava
+# lava
 for y in range(0, 25):
-    lav = Lava(0, SCREEN_HEIGHT + 720 - 20 * y, 500, 20);
+    lav = Lava(0, SCREEN_HEIGHT + 720 - 20 * y, 500, 20)
     platforms.add(lav)
     all_sprites.add(lav)
 
@@ -244,7 +331,6 @@ for x in range(3):
         plat = Platform(200 * x, SCREEN_HEIGHT + y * 20, 640, 300)
         platforms.add(plat)
         all_sprites.add(plat)
-
 
 target_position = (0, 0)
 
@@ -262,18 +348,21 @@ while running:
                 dead = 0
                 frames_from_start = 0
                 initials = ""
+                snowballs.empty()  # Clear all snowballs on reset
+                snowball_spawn_timer = 0
                 for platform in platforms:
                     if isinstance(platform, Lava):
                         platform.world_y = platform.orig_y
                         platform.rect.y = platform.orig_y
             if dead == 1 and event.key == pygame.K_RETURN and len(initials) == 3:
                 with open("scores.txt", "a") as f:
-                    f.write(initials+","+str(585-player.max_height)+"\n")
+                    f.write(initials + "," + str(585 - player.max_height) + "\n")
                 dead = 2
             if dead == 1 and event.key == pygame.K_BACKSPACE and len(initials) > 0:
                 initials = initials[:-1]
                 print(initials)
-            if dead == 1 and len(pygame.key.name(event.key)) == 1 and not pygame.key.name(event.key).isnumeric() and len(initials) < 3:
+            if dead == 1 and len(pygame.key.name(event.key)) == 1 and not pygame.key.name(
+                    event.key).isnumeric() and len(initials) < 3:
                 initials += pygame.key.name(event.key).upper()
                 print(initials)
         if event.type == pygame.MOUSEBUTTONUP and player.grounded:
@@ -297,13 +386,31 @@ while running:
 
         max_platform_y -= 250
 
+    # Spawn snowballs periodically
+    if dead == 0 and 585 - player.max_height >= 500:
+        snowball_spawn_timer += 1
+        if snowball_spawn_timer >= SNOWBALL_SPAWN_INTERVAL:
+            # Spawn snowball at a random x position well above the visible screen
+            spawn_x = random.randint(50, SCREEN_WIDTH - 50)
+            spawn_y = player.rect.y - 600  # Spawn well above player (off-screen)
+            snowball = Snowball(spawn_x, spawn_y)
+            snowballs.add(snowball)
+            snowball_spawn_timer = 0
+
     # Update moving platforms BEFORE player movement
     for platform in platforms.sprites():
         if isinstance(platform, MovingPlatform):
             platform.tick()
         if isinstance(platform, Lava) and frames_from_start != 0:
-            platform.world_y -= ((585-player.max_height - 500)**0.1)/3
+            platform.world_y -= ((585 - player.max_height - 500) ** 0.1) / 3
             platform.rect.y = platform.world_y
+
+    # Update snowballs
+    for snowball in snowballs.sprites():
+        snowball.update()
+        # Remove snowballs that are too far below the player
+        if snowball.rect.y > player.rect.y + 800:
+            snowballs.remove(snowball)
 
     if not player.grounded:
         player.nudge(0, GRAVITY)
@@ -343,6 +450,10 @@ while running:
     # Draw player with camera offset
     player.draw(camera)
 
+    # Draw snowballs
+    for snowball in snowballs.sprites():
+        snowball.draw(camera)
+
     screen.blit(score, (SCREEN_WIDTH / 2 - score.get_width() / 2, 30))
 
     pygame.draw.circle(screen, RED, target_position, 3)
@@ -360,7 +471,7 @@ while running:
         screen.blit(end_score, (275, 350))
         for i in range(len(initials)):
             rend = end_font.render(initials[i], True, BLACK)
-            screen.blit(rend, (128 + (24 - rend.get_width()/2) + i*96, 522))
+            screen.blit(rend, (128 + (24 - rend.get_width() / 2) + i * 96, 522))
     elif dead == 2:
         screen.blit(death_2, (0, 0))
         with open("scores.txt") as data:
@@ -384,8 +495,9 @@ while running:
                     maxes[3] = maxes[2]
                     maxes[2] = [parts[0], this_score]
             for n in range(len(maxes)):
-                screen.blit(font.render(maxes[n][0], True, BLACK), (120, 385 + n*30))
-                screen.blit(font.render(str(maxes[n][1]) if str(maxes[n][1]) != "0" else "", True, BLACK), (290, 385 + n*30))
+                screen.blit(font.render(maxes[n][0], True, BLACK), (120, 385 + n * 30))
+                screen.blit(font.render(str(maxes[n][1]) if str(maxes[n][1]) != "0" else "", True, BLACK),
+                            (290, 385 + n * 30))
 
     pygame.display.flip()
 
