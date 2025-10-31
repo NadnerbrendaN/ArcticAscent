@@ -363,7 +363,7 @@ while running:
             if dead == 1 and len(pygame.key.name(event.key)) == 1 and not pygame.key.name(
                     event.key).isnumeric() and len(initials) < 3:
                 initials += pygame.key.name(event.key).upper()
-        if event.type == pygame.MOUSEBUTTONUP and player.grounded:
+        if event.type == pygame.MOUSEBUTTONUP and player.grounded and dead == 0:
             player.grounded = False
             target_position = pygame.mouse.get_pos()
             player.nudge((target_position[0] - player.rect.centerx) / (SCREEN_WIDTH / 10),
