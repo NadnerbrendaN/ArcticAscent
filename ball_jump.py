@@ -360,11 +360,9 @@ while running:
                 dead = 2
             if dead == 1 and event.key == pygame.K_BACKSPACE and len(initials) > 0:
                 initials = initials[:-1]
-                print(initials)
             if dead == 1 and len(pygame.key.name(event.key)) == 1 and not pygame.key.name(
                     event.key).isnumeric() and len(initials) < 3:
                 initials += pygame.key.name(event.key).upper()
-                print(initials)
         if event.type == pygame.MOUSEBUTTONUP and player.grounded:
             player.grounded = False
             target_position = pygame.mouse.get_pos()
